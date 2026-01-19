@@ -9,6 +9,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -17,12 +19,14 @@ import (
 	"github.com/ncruces/go-sqlite3/vfs/memdb"
 )
 
-const FOLDER_TAR = "/sdcard/tar-xl"
+var FOLDER_TAR string
 
 type Data struct {
-	Nama         string `json:"nama"`
-	Number       string `json:"number"`
-	RefreshToken string `json:"refresh_token"`
+	Nama             string `json:"name"`
+	Number           int    `json:"number"`
+	RefreshToken     string `json:"refresh_token"`
+	SubscriberId     string `json:"subscriber_id"`
+	SubscriptionType string `json:"subscription_type"`
 }
 
 func FindInTarGz(tarGzPath string, pattern string) error {
@@ -81,6 +85,10 @@ func FindInTarGz(tarGzPath string, pattern string) error {
 				name := toString(p["name"])
 				nomer := toString(p["msisdn"])
 
+				num, _ := strconv.Atoi(nomer)
+
+				subscription_type := toString(p["subscription_type"])
+				subscriber_id := toString(p["subscriber_id"])
 				if name == "" {
 					name = "Kosong"
 				}
@@ -91,9 +99,11 @@ func FindInTarGz(tarGzPath string, pattern string) error {
 						refreshToken := toString(c["refresh_token"])
 
 						ck = append(ck, Data{
-							Nama:         Capitalize(name),
-							Number:       nomer,
-							RefreshToken: refreshToken,
+							Nama:             Capitalize(name),
+							Number:           num,
+							RefreshToken:     refreshToken,
+							SubscriptionType: subscription_type,
+							SubscriberId:     subscriber_id,
 						})
 					}
 				}
@@ -203,6 +213,12 @@ func FolderExists(path string) bool {
 }
 
 func main() {
+
+	FOLDER_TAR = "/sdcard/tar-xl"
+	if runtime.GOOS == "windows" {
+		FOLDER_TAR = "tar-xl"
+	}
+
 	if !FolderExists(FOLDER_TAR) {
 		err := os.MkdirAll(FOLDER_TAR, 0755)
 		if err != nil {
